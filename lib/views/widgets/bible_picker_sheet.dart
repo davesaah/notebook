@@ -101,7 +101,7 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
           else
             DropdownButtonFormField<int>(
               dropdownColor: const Color(0xFF333333),
-              value: _selectedBookId,
+              initialValue: _selectedBookId,
               decoration: const InputDecoration(
                 labelText: 'Book',
                 labelStyle: TextStyle(color: Colors.grey),

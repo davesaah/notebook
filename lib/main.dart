@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:notebook/constants/colors.dart';
 import 'views/notes_home_screen.dart';
 
 void main() async {
@@ -14,11 +15,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Notebook App',
+      title: 'Notebook',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF1E1E1E),
+        scaffoldBackgroundColor: CustomColors.scaffoldBgColor,
         useMaterial3: true,
       ),
       localizationsDelegates: const [
@@ -27,8 +28,9 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
         FlutterQuillLocalizations.delegate, // Prevents FlutterQuillUnimplementedError
       ],
-      supportedLocales: const [
+      supportedLocales: const <Locale>[
         Locale('en', 'US'),
+        Locale('en', 'GB'),
       ],
       home: const NotesHomeScreen(),
     );

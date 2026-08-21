@@ -92,7 +92,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     final verseRef = endVerse != null
         ? '— $bookName $chapter:$startVerse–$endVerse ($translation)'
         : '— $bookName $chapter:$startVerse ($translation)';
-    ;
 
     final fullInsertedText = '\n$quoteBody\n$verseRef\n\n';
 
