@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:notebook/models/notebook.dart';
+import 'package:notebook/services/database_helper.dart';
 
 class CreateNotebookSheet extends StatefulWidget {
   const CreateNotebookSheet({super.key});
@@ -18,6 +20,12 @@ class _CreateNotebookSheetState extends State<CreateNotebookSheet> {
     Color(0xFFD3E4CD),
     Color(0xFF707070),
   ];
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,14 +54,10 @@ class _CreateNotebookSheetState extends State<CreateNotebookSheet> {
           const SizedBox(height: 16),
           const Text(
             'Create New Notebook',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          // Preview of the current notebook configuration
+          // Notebook Preview
           Container(
             width: 120,
             height: 160,
@@ -65,7 +69,7 @@ class _CreateNotebookSheetState extends State<CreateNotebookSheet> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
+                  color: Colors.black.withOpacity(0.4),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -74,14 +78,8 @@ class _CreateNotebookSheetState extends State<CreateNotebookSheet> {
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                _titleController.text.isEmpty
-                    ? 'New Notebook'
-                    : _titleController.text.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
+                _titleController.text.isEmpty ? 'NEW NOTEBOOK' : _titleController.text.toUpperCase(),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
               ),
             ),
           ),
@@ -128,18 +126,25 @@ class _CreateNotebookSheetState extends State<CreateNotebookSheet> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3E3E3E),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               ),
-              onPressed: () {
-                // Save notebook logic
-                Navigator.pop(context);
+              onPressed: () async {
+                final rawTitle = _titleController.text.trim();
+                final title = rawTitle.isEmpty ? 'NEW NOTEBOOK' : rawTitle;
+
+                final newNotebook = Notebook(
+                  id: 'nb_${DateTime.now().millisecondsSinceEpoch}',
+                  title: title,
+                  color: _selectedColor,
+                );
+
+                await DatabaseHelper.instance.createNotebook(newNotebook);
+
+                if (context.mounted) {
+                  Navigator.pop(context, true); // Return true to trigger home screen refresh
+                }
               },
-              child: const Text(
-                'Create notebook',
-                style: TextStyle(color: Colors.white),
-              ),
+              child: const Text('Create notebook', style: TextStyle(color: Colors.white)),
             ),
           ),
         ],

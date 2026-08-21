@@ -28,37 +28,51 @@ class DatabaseHelper {
   Future<void> _createDB(Database db, int version) async {
     // Notebooks table
     await db.execute('''
-      CREATE TABLE notebooks (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        color INTEGER NOT NULL
-      )
-    ''');
+    CREATE TABLE notebooks (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      color INTEGER NOT NULL
+    )
+  ''');
 
     // Notes table
     await db.execute('''
-      CREATE TABLE notes (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        notebookId TEXT NOT NULL,
-        dateCreated TEXT NOT NULL,
-        FOREIGN KEY (notebookId) REFERENCES notebooks (id) ON DELETE CASCADE
-      )
-    ''');
+    CREATE TABLE notes (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      notebookId TEXT NOT NULL,
+      dateCreated TEXT NOT NULL,
+      FOREIGN KEY (notebookId) REFERENCES notebooks (id) ON DELETE CASCADE
+    )
+  ''');
 
-    // Insert default sample notebooks
+    // Seed default notebooks: Journal as default
     await db.insert('notebooks', {
       'id': 'nb_journal',
-      'title': "DAVID'S JOURNAL",
-      'color': 0xFF3D6B5A,
+      'title': "JOURNAL",
+      'color': 0xFF2C5E58, // Dark teal green cover
     });
 
-    await db.insert('notebooks', {
-      'id': 'nb_notes',
-      'title': "DAVID'S NOTES",
-      'color': 0xFFB82E2E,
-    });
+//     final now = DateTime.now();
+//
+// // Yesterday's note
+//     await db.insert('notes', {
+//       'id': 'note_yesterday',
+//       'title': 'Yesterday\'s Reflections',
+//       'content': 'Taking time to review progress from yesterday.',
+//       'notebookId': 'nb_journal',
+//       'dateCreated': now.subtract(const Duration(days: 1)).toIso8601String(),
+//     });
+//
+// // Note from 3 days ago
+//     await db.insert('notes', {
+//       'id': 'note_3days_ago',
+//       'title': 'Weekly Goal Planning',
+//       'content': 'Setting up priorities for the upcoming week.',
+//       'notebookId': 'nb_journal',
+//       'dateCreated': now.subtract(const Duration(days: 3)).toIso8601String(),
+//     });
   }
 
   // --- Notebook Operations ---
