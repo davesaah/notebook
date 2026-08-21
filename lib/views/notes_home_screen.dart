@@ -1,7 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:notebook/constants/colors.dart';
+import 'package:notebook/views/widgets/create_notebook_sheet.dart';
 import 'package:notebook/views/widgets/note_tile.dart';
 import 'package:notebook/models/note.dart';
 import 'package:notebook/models/notebook.dart';
@@ -94,141 +93,21 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
   String _getNotebookName(String notebookId) => _notebookById(notebookId).title;
 
   // --- Create Notebook Modal ---
-  void _showCreateNotebookDialog() {
-    final titleController = TextEditingController();
-    final colorOptions = [
-      CustomColors.burntOrange,
-      CustomColors.darkTealGreen,
-      CustomColors.lightCaramel,
-      CustomColors.mutedSlateBlue,
-      CustomColors.dustyPurple,
-    ];
-
-    showModalBottomSheet(
+  void _showCreateNotebookDialog() async {
+    final newNotebook = await showModalBottomSheet<Notebook>(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF232323),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (modalContext) {
-        final random = Random();
-        Color selectedColor = colorOptions[random.nextInt(colorOptions.length)];
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Create Notebook',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: titleController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Notebook Title',
-                      labelStyle: TextStyle(color: Colors.grey),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.amber),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Select Accent Color',
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: colorOptions.map((color) {
-                      final isSelected =
-                          selectedColor.toARGB32() == color.toARGB32();
-                      return GestureDetector(
-                        onTap: () => setModalState(() => selectedColor = color),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: isSelected
-                                ? Border.all(color: Colors.white, width: 3)
-                                : null,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: CustomColors.darkTealGreen,
-                      ),
-                      onPressed: () async {
-                        final title = titleController.text.trim();
-                        if (title.isEmpty) return;
-
-                        final newNotebook = Notebook(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          title: title,
-                          color: selectedColor,
-                          noteCount: 0,
-                        );
-
-                        // 1. Database insert
-                        await DatabaseHelper.instance.createNotebook(
-                          newNotebook,
-                        );
-
-                        // 2. Pop dialog using root navigator
-                        if (modalContext.mounted &&
-                            Navigator.canPop(modalContext)) {
-                          Navigator.of(modalContext, rootNavigator: true).pop();
-                        }
-
-                        // 3. Update parent screen state
-                        if (mounted) {
-                          setState(() {
-                            _selectedNotebookId = newNotebook.id;
-                          });
-                          await _refreshData();
-                        }
-                      },
-                      child: const Text(
-                        'Create',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => const CreateNotebookSheet(),
     );
+
+    if (newNotebook != null && mounted) {
+      setState(() => _selectedNotebookId = newNotebook.id);
+      await _refreshData();
+    }
   }
 
   @override
