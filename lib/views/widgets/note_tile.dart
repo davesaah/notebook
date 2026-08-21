@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:intl/intl.dart';
 import 'package:notebook/constants/colors.dart';
 import 'package:notebook/models/note.dart';
@@ -18,6 +21,12 @@ class NoteTile extends StatelessWidget {
     required this.notebookColor,
     required this.onTap,
   });
+
+  String getNotePlainText(String contentJson) {
+      final decoded = jsonDecode(contentJson);
+      final doc = Document.fromJson(decoded);
+      return doc.toPlainText().trim();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +94,7 @@ class NoteTile extends StatelessWidget {
                   if (note.content.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
-                      note.content,
+                      getNotePlainText(note.content),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: Colors.grey, fontSize: 13),

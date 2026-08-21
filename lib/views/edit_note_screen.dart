@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:notebook/constants/colors.dart';
@@ -42,7 +44,8 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     _dateCreated = widget.initialDateCreated ?? DateTime.now();
 
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
-      final doc = Document()..insert(0, widget.initialContent!);
+      final json = jsonDecode(widget.initialContent!);
+      final doc = Document.fromJson(json);
       _quillController = QuillController(
         document: doc,
         selection: const TextSelection.collapsed(offset: 0),
@@ -158,17 +161,15 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               ),
               onPressed: () async {
                 final title = _titleController.text.trim();
-                final plainText = _quillController.document
-                    .toPlainText()
-                    .trim();
+                final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
 
-                if (title.isNotEmpty || plainText.isNotEmpty) {
+                if (title.isNotEmpty || deltaJson.isNotEmpty) {
                   final noteToSave = Note(
                     id:
                         widget.noteId ??
                         DateTime.now().millisecondsSinceEpoch.toString(),
                     title: title.isEmpty ? 'Untitled Note' : title,
-                    content: plainText,
+                    content: deltaJson,
                     notebookId: widget.notebookId,
                     dateCreated: _dateCreated,
                   );
