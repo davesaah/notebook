@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:notebook/constants/colors.dart';
 import 'package:notebook/models/note.dart';
 import 'package:notebook/models/notebook.dart';
@@ -21,11 +19,7 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _databaseName);
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-    );
+    return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
   Future<Database> get database async {
@@ -58,7 +52,11 @@ class DatabaseHelper {
   ''');
 
     // Seed default notebook: Journal
-    final journal = Notebook(id: 'nb_journal', title: "Journal", color: CustomColors.darkTealGreen);
+    final journal = Notebook(
+      id: 'nb_journal',
+      title: "Journal",
+      color: CustomColors.darkTealGreen,
+    );
     await db.insert(
       'notebooks',
       journal.toMap(),
