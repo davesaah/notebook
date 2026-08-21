@@ -7,33 +7,55 @@ import 'package:notebook/models/notebook.dart';
 import 'package:notebook/models/note.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+  static const _databaseName = "notebook_app.db";
+
+  // 1. Bump the version number whenever you alter the schema
+  static const _databaseVersion = 2;
+
+  DatabaseHelper._privateConstructor();
+  static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
+
   static Database? _database;
 
   DatabaseHelper._init();
 
+  Future<Database> _initDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, _databaseName);
+
+    return await openDatabase(
+      path,
+      version: _databaseVersion,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade, // 2. Add the migration callback
+    );
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('notebook_app.db');
+    _database = await _initDatabase();
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
-
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+  Future<int> insertNotebook(Notebook notebook) async {
+    final db = await instance.database;
+    return await db.insert(
+      'notebooks', // Replace with your actual notebooks table name if different
+      notebook.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
     // Notebooks table
     await db.execute('''
-    CREATE TABLE notebooks (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      color INTEGER NOT NULL
-    )
-  ''');
+  CREATE TABLE notebooks (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    color INTEGER NOT NULL,
+    note_count INTEGER DEFAULT 0
+  )
+''');
 
     // Notes table
     await db.execute('''
@@ -50,29 +72,29 @@ class DatabaseHelper {
     // Seed default notebooks: Journal as default
     await db.insert('notebooks', {
       'id': 'nb_journal',
-      'title': "JOURNAL",
+      'title': "Journal",
       'color': 0xFF2C5E58, // Dark teal green cover
     });
+  }
 
-//     final now = DateTime.now();
-//
-// // Yesterday's note
-//     await db.insert('notes', {
-//       'id': 'note_yesterday',
-//       'title': 'Yesterday\'s Reflections',
-//       'content': 'Taking time to review progress from yesterday.',
-//       'notebookId': 'nb_journal',
-//       'dateCreated': now.subtract(const Duration(days: 1)).toIso8601String(),
-//     });
-//
-// // Note from 3 days ago
-//     await db.insert('notes', {
-//       'id': 'note_3days_ago',
-//       'title': 'Weekly Goal Planning',
-//       'content': 'Setting up priorities for the upcoming week.',
-//       'notebookId': 'nb_journal',
-//       'dateCreated': now.subtract(const Duration(days: 3)).toIso8601String(),
-//     });
+  // Migration handler (runs when oldVersion < newVersion on existing installs)
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    // Migration from Version 1 -> Version 2
+    if (oldVersion < 2) {
+      // Example: Adding an 'is_pinned' column to the 'notes' table
+      await db.execute(
+        'ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;',
+      );
+    }
+
+    // Future Migration Example: Version 2 -> Version 3
+    /*
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE notebooks ADD COLUMN is_archived INTEGER DEFAULT 0;',
+      );
+    }
+    */
   }
 
   // --- Notebook Operations ---
@@ -107,6 +129,33 @@ class DatabaseHelper {
         noteCount: json['noteCount'] as int,
       );
     }).toList();
+  }
+
+// Fetch notes for the currently active notebook
+  Future<List<Note>> getNotesForNotebook(String notebookId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'notes',
+      where: 'notebookId = ?',
+      whereArgs: [notebookId],
+      orderBy: 'dateCreated DESC',
+    );
+    return result.map((json) => Note.fromMap(json)).toList();
+  }
+
+// Search across ALL notes in the entire database by title and content
+  Future<List<Note>> searchAllNotes(String query) async {
+    final db = await instance.database;
+    final formattedQuery = '%${query.toLowerCase()}%';
+
+    final result = await db.query(
+      'notes',
+      where: 'LOWER(title) LIKE ? OR LOWER(content) LIKE ?',
+      whereArgs: [formattedQuery, formattedQuery],
+      orderBy: 'dateCreated DESC',
+    );
+
+    return result.map((json) => Note.fromMap(json)).toList();
   }
 
   Future<int> deleteNotebook(String id) async {
