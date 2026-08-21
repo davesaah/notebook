@@ -1,32 +1,9 @@
-// lib/services/bible_helper.dart
-
 import 'dart:io';
+
 import 'package:flutter/services.dart';
+import 'package:notebook/models/bible_verse.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-
-class BibleVerse {
-  final int bookNumber;
-  final int chapter;
-  final int verse;
-  final String text;
-
-  BibleVerse({
-    required this.bookNumber,
-    required this.chapter,
-    required this.verse,
-    required this.text,
-  });
-
-  factory BibleVerse.fromMap(Map<String, dynamic> map) {
-    return BibleVerse(
-      bookNumber: map['book_id'] ?? 0,
-      chapter: map['chapter'] ?? 0,
-      verse: map['verse'] ?? 0,
-      text: map['text'] ?? '',
-    );
-  }
-}
 
 class BibleHelper {
   static final Map<String, Database> _databases = {};
@@ -46,16 +23,25 @@ class BibleHelper {
   static Future<Database> _initBibleDatabase(String dbFileName) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, dbFileName);
-
-    // Force delete cached DB so Flutter copies the clean asset version
     final file = File(path);
-    if (await file.exists()) {
-      await file.delete();
-    }
 
-    ByteData data = await rootBundle.load('assets/bible/$dbFileName');
-    List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-    await file.writeAsBytes(bytes, flush: true);
+    if (!await file.exists()) {
+      // Ensure the databases directory exists (needed on some platforms/first run)
+      await Directory(dbPath).create(recursive: true);
+
+      // Load the bundled asset database
+      final ByteData data = await rootBundle.load('assets/bible/$dbFileName');
+      final List<int> bytes = data.buffer.asUint8List(
+        data.offsetInBytes,
+        data.lengthInBytes,
+      );
+
+      // Write to a temp file first, then rename into place.
+      // Avoids ever leaving a missing/corrupted DB if the write is interrupted.
+      final tempFile = File('$path.tmp');
+      await tempFile.writeAsBytes(bytes, flush: true);
+      await tempFile.rename(path);
+    }
 
     return await openDatabase(path, readOnly: true);
   }
@@ -90,7 +76,7 @@ class BibleHelper {
   }
 
   // Fetch a single verse
-  static Future<BibleVerse?> getVerse({
+  static Future<BibleVerse> getVerse({
     required String translation,
     required int book,
     required int chapter,
@@ -106,28 +92,6 @@ class BibleHelper {
       limit: 1,
     );
 
-    if (maps.isNotEmpty) {
-      return BibleVerse.fromMap(maps.first);
-    }
-    return null;
-  }
-
-  // Fetch an entire chapter
-  static Future<List<BibleVerse>> getChapter({
-    required String translation,
-    required int book,
-    required int chapter,
-  }) async {
-    final db = await getDatabase(translation);
-    final tableName = '${translation.toUpperCase()}_verses';
-
-    final List<Map<String, dynamic>> maps = await db.query(
-      tableName,
-      where: 'book_id = ? AND chapter = ?',
-      whereArgs: [book, chapter],
-      orderBy: 'verse ASC',
-    );
-
-    return List.generate(maps.length, (i) => BibleVerse.fromMap(maps[i]));
+    return BibleVerse.fromMap(maps.first);
   }
 }

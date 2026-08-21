@@ -3,6 +3,8 @@ import 'dart:ui';
 class CustomColors {
   static final scaffoldBackground = const Color(0xFF1E1E1E); // eerie black
   static final noteTileBackground = const Color(0xFF2B2B2B); // dark gray
+  static final boxDecorationBackground = const Color(0xFF232323); // dark charcoal
+  static final dropdownBackground = const Color(0xFF333333); // lighter gray
   static final darkTealGreen = const Color(0xFF2C5E58);
   static final burntOrange = const Color(0xFFC84B31);
   static final lightCaramel = const Color(0xFFD4A373);

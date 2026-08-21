@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:notebook/models/bible_verse.dart';
 import '../models/note.dart';
 import '../services/database_helper.dart';
 import '../services/bible_helper.dart';
