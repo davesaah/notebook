@@ -46,34 +46,37 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
     }
 
     final notes = _selectedNotebookId != null
-        ? await DatabaseHelper.instance.getNotesByNotebook(_selectedNotebookId!)
+        ? await DatabaseHelper.instance.getNotesForNotebook(_selectedNotebookId!)
         : await DatabaseHelper.instance.getAllNotes();
 
     setState(() {
       _notebooks = notebooks;
       _allNotes = notes;
-      _applySearchFilter();
       _isLoading = false;
     });
+
+    _applySearchFilter(); // it manages its own setState/mounted check
   }
 
   void _onSearchChanged() {
-    setState(() {
       _applySearchFilter();
-    });
   }
 
-  void _applySearchFilter() {
+  void _applySearchFilter() async {
     final query = _searchController.text.trim().toLowerCase();
+    List<Note> results;
+
     if (query.isEmpty) {
-      _filteredNotes = List.from(_allNotes);
+      results = List.from(_allNotes);
     } else {
-      _filteredNotes = _allNotes.where((note) {
-        final titleMatch = note.title.toLowerCase().contains(query);
-        final contentMatch = note.content.toLowerCase().contains(query);
-        return titleMatch || contentMatch;
-      }).toList();
+      results = await DatabaseHelper.instance.searchAllNotes(query);
     }
+
+    if (!mounted) return; // guard against setState after dispose
+
+    setState(() {
+      _filteredNotes = results;
+    });
   }
 
   String get _currentNotebookTitle {
@@ -180,11 +183,11 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
 
                         try {
                           // 1. Database insert
-                          await DatabaseHelper.instance.insertNotebook(newNotebook);
+                          await DatabaseHelper.instance.createNotebook(newNotebook);
 
                           // 2. Pop dialog using root navigator
-                          if (Navigator.canPop(modalContext)) {
-                            Navigator.of(modalContext, rootNavigator: true).pop();
+                          if (modalContext.mounted && Navigator.canPop(modalContext)){
+                              Navigator.of(modalContext, rootNavigator: true).pop();
                           }
 
                           // 3. Update parent screen state

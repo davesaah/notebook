@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:notebook/constants/colors.dart';
+
 import 'views/notes_home_screen.dart';
 
 void main() async {
@@ -19,19 +20,17 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: CustomColors.scaffoldBgColor,
+        scaffoldBackgroundColor: CustomColors.background,
         useMaterial3: true,
       ),
-      localizationsDelegates: const [
+      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
-        FlutterQuillLocalizations.delegate, // Prevents FlutterQuillUnimplementedError
+        FlutterQuillLocalizations.delegate,
+        // Prevents FlutterQuillUnimplementedError
       ],
-      supportedLocales: const <Locale>[
-        Locale('en', 'US'),
-        Locale('en', 'GB'),
-      ],
+      supportedLocales: const <Locale>[Locale('en', 'US'), Locale('en', 'GB')],
       home: const NotesHomeScreen(),
     );
   }

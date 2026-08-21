@@ -19,7 +19,7 @@ class Notebook {
       'id': id,
       'title': title,
       'color': color.toARGB32(),
-      'note_count': noteCount,
+      'noteCount': noteCount,
     };
   }
 
@@ -29,7 +29,7 @@ class Notebook {
       id: map['id'] as String,
       title: map['title'] as String,
       color: Color(map['color'] as int),
-      noteCount: map['note_count'] as int? ?? 0,
+      noteCount: map['noteCount'] as int? ?? 0,
     );
   }
 }
