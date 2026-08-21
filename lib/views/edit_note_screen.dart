@@ -208,7 +208,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.menu_book_rounded, color: Colors.amber),
+                    icon: const Icon(Icons.menu_book_rounded, color: Colors.white),
                     onPressed: () {
                       showModalBottomSheet(
                         context: context,
