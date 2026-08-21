@@ -68,6 +68,27 @@ class BibleHelper {
     return await db.query(tableName, orderBy: 'id ASC');
   }
 
+  // Fetch a range of verses (e.g. verses 16 to 18)
+  static Future<List<BibleVerse>> getVerseRange({
+    required String translation,
+    required int book,
+    required int chapter,
+    required int startVerse,
+    required int endVerse,
+  }) async {
+    final db = await getDatabase(translation);
+    final tableName = '${translation.toUpperCase()}_verses';
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      tableName,
+      where: 'book_id = ? AND chapter = ? AND verse >= ? AND verse <= ?',
+      whereArgs: [book, chapter, startVerse, endVerse],
+      orderBy: 'verse ASC',
+    );
+
+    return List.generate(maps.length, (i) => BibleVerse.fromMap(maps[i]));
+  }
+
   // Fetch a single verse
   static Future<BibleVerse?> getVerse({
     required String translation,

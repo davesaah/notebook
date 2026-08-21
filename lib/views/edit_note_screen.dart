@@ -59,33 +59,52 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     required String bookName,
     required int bookNumber,
     required int chapter,
-    required int verse,
+    required int startVerse,
+    int? endVerse,
   }) async {
-    final result = await BibleHelper.getVerse(
-      translation: translation,
-      book: bookNumber,
-      chapter: chapter,
-      verse: verse,
-    );
+    List<BibleVerse> verses = [];
 
-    if (result == null) return;
+    if (endVerse != null && endVerse > startVerse) {
+      verses = await BibleHelper.getVerseRange(
+        translation: translation,
+        book: bookNumber,
+        chapter: chapter,
+        startVerse: startVerse,
+        endVerse: endVerse,
+      );
+    } else {
+      final singleVerse = await BibleHelper.getVerse(
+        translation: translation,
+        book: bookNumber,
+        chapter: chapter,
+        verse: startVerse,
+      );
+      if (singleVerse != null) verses.add(singleVerse);
+    }
 
-    final verseRef = '— $bookName $chapter:$verse ($translation)';
+    if (verses.isEmpty) return;
 
-    // Clean text without markdown prefix symbols
-    final quoteText = '"${result.text}"';
-    final fullInsertedText = '\n$quoteText\n$verseRef\n\n';
+    // Format single verse vs multiline range
+    final String quoteBody = verses.length == 1
+        ? '"${verses.first.text}"'
+        : verses.map((v) => '${v.verse}. ${v.text}').join('\n');
+
+    final verseRef = endVerse != null
+        ? '— $bookName $chapter:$startVerse–$endVerse ($translation)'
+        : '— $bookName $chapter:$startVerse ($translation)';
+    ;
+
+    final fullInsertedText = '\n$quoteBody\n$verseRef\n\n';
 
     final index = _quillController.selection.baseOffset;
     final targetIndex = index < 0 ? _quillController.document.length - 1 : index;
 
-    // 1. Insert raw text into document
+    // 1. Insert text into document
     _quillController.document.insert(targetIndex, fullInsertedText);
 
-    // 2. Format both lines (quote and citation) as a blockquote
-    // Target start index skips the leading newline (+1)
+    // 2. Format verse block and citation as blockquote
     final formatStart = targetIndex + 1;
-    final formatLength = quoteText.length + 1 + verseRef.length + 1;
+    final formatLength = quoteBody.length + 1 + verseRef.length + 1;
 
     _quillController.formatText(
       formatStart,
@@ -203,14 +222,16 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                               required String bookName,
                               required int bookNumber,
                               required int chapter,
-                              required int verse,
+                              required int startVerse,
+                              int? endVerse,
                             }) {
                               _insertVerse(
                                 translation: translation,
                                 bookName: bookName,
                                 bookNumber: bookNumber,
                                 chapter: chapter,
-                                verse: verse,
+                                startVerse: startVerse,
+                                endVerse: endVerse,
                               );
                             },
                           ),

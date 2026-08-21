@@ -7,7 +7,8 @@ class BiblePickerSheet extends StatefulWidget {
   required String bookName,
   required int bookNumber,
   required int chapter,
-  required int verse,
+  required int startVerse,
+  int? endVerse,
   }) onVerseSelected;
 
   const BiblePickerSheet({super.key, required this.onVerseSelected});
@@ -22,7 +23,8 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
   int? _selectedBookId; // Store ID instead of Map reference
 
   final TextEditingController _chapterController = TextEditingController(text: '1');
-  final TextEditingController _verseController = TextEditingController(text: '1');
+  final TextEditingController _startVerseController = TextEditingController(text: '1');
+  final TextEditingController _endVerseController = TextEditingController();
   bool _isLoadingBooks = true;
 
   @override
@@ -34,7 +36,8 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
   @override
   void dispose() {
     _chapterController.dispose();
-    _verseController.dispose();
+    _startVerseController.dispose();
+    _endVerseController.dispose();
     super.dispose();
   }
 
@@ -116,7 +119,7 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
 
           const SizedBox(height: 12),
 
-          // Chapter & Verse Inputs
+          // Chapter, Start Verse, and Optional End Verse Inputs
           Row(
             children: [
               Expanded(
@@ -131,14 +134,27 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
-                  controller: _verseController,
+                  controller: _startVerseController,
                   keyboardType: TextInputType.number,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
-                    labelText: 'Verse',
+                    labelText: 'From Verse',
+                    labelStyle: TextStyle(color: Colors.grey),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: _endVerseController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'To Verse (Opt)',
                     labelStyle: TextStyle(color: Colors.grey),
                     enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
                   ),
@@ -158,7 +174,14 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
                   ? null
                   : () {
                 final chapter = int.tryParse(_chapterController.text) ?? 1;
-                final verse = int.tryParse(_verseController.text) ?? 1;
+                final startVerse = int.tryParse(_startVerseController.text) ?? 1;
+                final rawEndVerse = int.tryParse(_endVerseController.text);
+
+                // Ensure endVerse is valid and higher than startVerse
+                final endVerse = (rawEndVerse != null && rawEndVerse > startVerse)
+                    ? rawEndVerse
+                    : null;
+
                 final selectedBookMap = _booksList.firstWhere(
                       (b) => b['id'] == _selectedBookId,
                   orElse: () => {'name': ''},
@@ -169,7 +192,8 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
                   bookName: selectedBookMap['name'],
                   bookNumber: _selectedBookId!,
                   chapter: chapter,
-                  verse: verse,
+                  startVerse: startVerse,
+                  endVerse: endVerse,
                 );
                 Navigator.pop(context);
               },
