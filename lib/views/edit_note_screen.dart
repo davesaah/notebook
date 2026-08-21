@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:notebook/constants/colors.dart';
 import 'package:notebook/models/bible_verse.dart';
-import '../models/note.dart';
-import '../services/database_helper.dart';
-import '../services/bible_helper.dart';
-import 'widgets/bible_picker_sheet.dart';
+import 'package:notebook/models/note.dart';
+import 'package:notebook/services/database_helper.dart';
+import 'package:notebook/services/bible_helper.dart';
+import 'package:notebook/views/widgets/bible_picker_sheet.dart';
 
 class EditNoteScreen extends StatefulWidget {
   final String? noteId;
@@ -12,6 +13,7 @@ class EditNoteScreen extends StatefulWidget {
   final String? initialContent;
   final String notebookName;
   final String notebookId;
+  final DateTime? initialDateCreated;
 
   const EditNoteScreen({
     super.key,
@@ -20,6 +22,7 @@ class EditNoteScreen extends StatefulWidget {
     this.initialContent,
     required this.notebookName,
     required this.notebookId,
+    this.initialDateCreated,
   });
 
   @override
@@ -29,12 +32,14 @@ class EditNoteScreen extends StatefulWidget {
 class _EditNoteScreenState extends State<EditNoteScreen> {
   late final QuillController _quillController;
   late final TextEditingController _titleController;
+  late final DateTime _dateCreated;
   final FocusNode _editorFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
+    _dateCreated = widget.initialDateCreated ?? DateTime.now();
 
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
       final doc = Document()..insert(0, widget.initialContent!);
@@ -80,7 +85,8 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         chapter: chapter,
         verse: startVerse,
       );
-      if (singleVerse != null) verses.add(singleVerse);
+
+      verses.add(singleVerse);
     }
 
     if (verses.isEmpty) return;
@@ -97,7 +103,9 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     final fullInsertedText = '\n$quoteBody\n$verseRef\n\n';
 
     final index = _quillController.selection.baseOffset;
-    final targetIndex = index < 0 ? _quillController.document.length - 1 : index;
+    final targetIndex = index < 0
+        ? _quillController.document.length - 1
+        : index;
 
     // 1. Insert text into document
     _quillController.document.insert(targetIndex, fullInsertedText);
@@ -130,9 +138,9 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: CustomColors.scaffoldBackground,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: CustomColors.scaffoldBackground,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
@@ -143,20 +151,26 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
             padding: const EdgeInsets.only(right: 12.0),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2C5E58),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                backgroundColor: CustomColors.darkTealGreen,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
               onPressed: () async {
                 final title = _titleController.text.trim();
-                final plainText = _quillController.document.toPlainText().trim();
+                final plainText = _quillController.document
+                    .toPlainText()
+                    .trim();
 
                 if (title.isNotEmpty || plainText.isNotEmpty) {
                   final noteToSave = Note(
-                    id: widget.noteId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                    id:
+                        widget.noteId ??
+                        DateTime.now().millisecondsSinceEpoch.toString(),
                     title: title.isEmpty ? 'Untitled Note' : title,
                     content: plainText,
                     notebookId: widget.notebookId,
-                    dateCreated: DateTime.now(),
+                    dateCreated: _dateCreated,
                   );
 
                   if (widget.noteId != null) {
@@ -180,14 +194,28 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: TextField(
-                controller: _titleController,
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                decoration: const InputDecoration(
-                  hintText: 'Title',
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 24),
-                  border: InputBorder.none,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatDate(_dateCreated),
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  const SizedBox(width: 12),
+                  TextField(
+                    controller: _titleController,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Title',
+                      hintStyle: TextStyle(color: Colors.grey, fontSize: 24),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -204,36 +232,42 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               ),
             ),
             Container(
-              color: const Color(0xFF282828),
+              color: CustomColors.containerBackground,
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.menu_book_rounded, color: Colors.white),
+                    icon: const Icon(
+                      Icons.menu_book_rounded,
+                      color: Colors.white,
+                    ),
                     onPressed: () {
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
                         backgroundColor: Colors.transparent,
                         builder: (ctx) => Padding(
-                          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                          ),
                           child: BiblePickerSheet(
-                            onVerseSelected: ({
-                              required String translation,
-                              required String bookName,
-                              required int bookNumber,
-                              required int chapter,
-                              required int startVerse,
-                              int? endVerse,
-                            }) {
-                              _insertVerse(
-                                translation: translation,
-                                bookName: bookName,
-                                bookNumber: bookNumber,
-                                chapter: chapter,
-                                startVerse: startVerse,
-                                endVerse: endVerse,
-                              );
-                            },
+                            onVerseSelected:
+                                ({
+                                  required String translation,
+                                  required String bookName,
+                                  required int bookNumber,
+                                  required int chapter,
+                                  required int startVerse,
+                                  int? endVerse,
+                                }) {
+                                  _insertVerse(
+                                    translation: translation,
+                                    bookName: bookName,
+                                    bookNumber: bookNumber,
+                                    chapter: chapter,
+                                    startVerse: startVerse,
+                                    endVerse: endVerse,
+                                  );
+                                },
                           ),
                         ),
                       );
@@ -262,5 +296,28 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    final hour12 = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+
+    return '${months[date.month - 1]} ${date.day}, ${date.year} · $hour12:$minute $period';
   }
 }

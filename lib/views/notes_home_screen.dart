@@ -298,6 +298,7 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
                                   noteId: note.id,
                                   initialTitle: note.title,
                                   initialContent: note.content,
+                                  initialDateCreated: note.dateCreated,
                                   notebookName: _getNotebookName(
                                     note.notebookId,
                                   ),
