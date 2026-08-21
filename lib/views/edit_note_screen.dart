@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import '../models/note.dart';
 import '../services/database_helper.dart';
+import '../services/bible_helper.dart';
+import 'widgets/bible_picker_sheet.dart';
 
 class EditNoteScreen extends StatefulWidget {
+  final String? noteId;
   final String? initialTitle;
+  final String? initialContent;
   final String notebookName;
   final String notebookId;
 
   const EditNoteScreen({
     super.key,
+    this.noteId,
     this.initialTitle,
+    this.initialContent,
     required this.notebookName,
     required this.notebookId,
   });
@@ -27,8 +33,17 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   @override
   void initState() {
     super.initState();
-    _quillController = QuillController.basic();
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
+
+    if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
+      final doc = Document()..insert(0, widget.initialContent!);
+      _quillController = QuillController(
+        document: doc,
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    } else {
+      _quillController = QuillController.basic();
+    }
   }
 
   @override
@@ -37,6 +52,60 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     _titleController.dispose();
     _editorFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _insertVerse({
+    required String translation,
+    required String bookName,
+    required int bookNumber,
+    required int chapter,
+    required int verse,
+  }) async {
+    final result = await BibleHelper.getVerse(
+      translation: translation,
+      book: bookNumber,
+      chapter: chapter,
+      verse: verse,
+    );
+
+    if (result == null) return;
+
+    final verseRef = '— $bookName $chapter:$verse ($translation)';
+
+    // Clean text without markdown prefix symbols
+    final quoteText = '"${result.text}"';
+    final fullInsertedText = '\n$quoteText\n$verseRef\n\n';
+
+    final index = _quillController.selection.baseOffset;
+    final targetIndex = index < 0 ? _quillController.document.length - 1 : index;
+
+    // 1. Insert raw text into document
+    _quillController.document.insert(targetIndex, fullInsertedText);
+
+    // 2. Format both lines (quote and citation) as a blockquote
+    // Target start index skips the leading newline (+1)
+    final formatStart = targetIndex + 1;
+    final formatLength = quoteText.length + 1 + verseRef.length + 1;
+
+    _quillController.formatText(
+      formatStart,
+      formatLength,
+      Attribute.blockQuote,
+    );
+
+    // 3. Explicitly strip blockquote attribute from the final new line
+    final newCursorOffset = targetIndex + fullInsertedText.length;
+    _quillController.formatText(
+      newCursorOffset - 1,
+      1,
+      Attribute.clone(Attribute.blockQuote, null),
+    );
+
+    // 4. Move cursor to the clean line
+    _quillController.updateSelection(
+      TextSelection.collapsed(offset: newCursorOffset),
+      ChangeSource.local,
+    );
   }
 
   @override
@@ -63,19 +132,23 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                 final plainText = _quillController.document.toPlainText().trim();
 
                 if (title.isNotEmpty || plainText.isNotEmpty) {
-                  final newNote = Note(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  final noteToSave = Note(
+                    id: widget.noteId ?? DateTime.now().millisecondsSinceEpoch.toString(),
                     title: title.isEmpty ? 'Untitled Note' : title,
                     content: plainText,
                     notebookId: widget.notebookId,
                     dateCreated: DateTime.now(),
                   );
 
-                  await DatabaseHelper.instance.createNote(newNote);
+                  if (widget.noteId != null) {
+                    await DatabaseHelper.instance.updateNote(noteToSave);
+                  } else {
+                    await DatabaseHelper.instance.createNote(noteToSave);
+                  }
                 }
 
                 if (context.mounted) {
-                  Navigator.pop(context, true); // Return true to trigger UI refresh
+                  Navigator.pop(context, true);
                 }
               },
               child: const Text('Done', style: TextStyle(color: Colors.white)),
@@ -98,7 +171,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                 ),
               ),
             ),
-            // Expanded prevents RenderFlex overflow by giving QuillEditor bounded height
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -114,19 +186,55 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
             ),
             Container(
               color: const Color(0xFF282828),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: QuillSimpleToolbar(
-                  controller: _quillController,
-                  config: const QuillSimpleToolbarConfig(
-                    showFontFamily: false,
-                    showFontSize: false,
-                    showColorButton: false,
-                    showBackgroundColorButton: false,
-                    showAlignmentButtons: false,
-                    showHeaderStyle: true,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu_book_rounded, color: Colors.amber),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (ctx) => Padding(
+                          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                          child: BiblePickerSheet(
+                            onVerseSelected: ({
+                              required String translation,
+                              required String bookName,
+                              required int bookNumber,
+                              required int chapter,
+                              required int verse,
+                            }) {
+                              _insertVerse(
+                                translation: translation,
+                                bookName: bookName,
+                                bookNumber: bookNumber,
+                                chapter: chapter,
+                                verse: verse,
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: QuillSimpleToolbar(
+                        controller: _quillController,
+                        config: const QuillSimpleToolbarConfig(
+                          showFontFamily: false,
+                          showFontSize: false,
+                          showColorButton: false,
+                          showBackgroundColorButton: false,
+                          showAlignmentButtons: false,
+                          showHeaderStyle: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

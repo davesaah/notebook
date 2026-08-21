@@ -33,7 +33,7 @@ class NotebookCard extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(3, 4),
                 ),
@@ -47,7 +47,7 @@ class NotebookCard extends StatelessWidget {
                   bottom: 0,
                   child: Container(
                     width: 2,
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                   ),
                 ),
                 Positioned(
@@ -56,7 +56,7 @@ class NotebookCard extends StatelessWidget {
                   bottom: 0,
                   child: Container(
                     width: 6,
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                   ),
                 ),
                 Padding(
