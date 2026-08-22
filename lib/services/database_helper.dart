@@ -89,6 +89,7 @@ class DatabaseHelper {
       FROM notebooks n
       LEFT JOIN notes nt ON n.id = nt.notebookId
       GROUP BY n.id
+      ORDER BY noteCount DESC, LOWER(n.title) ASC
     ''');
     return result.map((item) => Notebook.fromMap(item)).toList();
   }

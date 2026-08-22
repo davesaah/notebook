@@ -92,7 +92,7 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
                 autofocus: true,
                 style: const TextStyle(color: Colors.white, fontSize: 18),
                 decoration: const InputDecoration(
-                  hintText: 'Search in this notebook...',
+                  hintText: 'Search notebook...',
                   hintStyle: TextStyle(color: Colors.grey),
                   border: InputBorder.none,
                 ),
