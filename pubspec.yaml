@@ -37,9 +37,11 @@ dependencies:
   flutter_quill: ^11.5.1
   sqflite: ^2.4.3
   path: ^1.9.1
+  path_provider: ^2.1.6
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.3
+  file_picker: ^12.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,7 +1,11 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:notebook/constants/colors.dart';
 import 'package:notebook/models/note.dart';
 import 'package:notebook/models/notebook.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
@@ -136,5 +140,73 @@ class DatabaseHelper {
     );
 
     return result.map((item) => Note.fromMap(item)).toList();
+  }
+
+  // --- Export / Import ---
+  /// Full path to the underlying sqlite file.
+  Future<String> getDatabaseFilePath() async {
+    final dbPath = await getDatabasesPath();
+    return join(dbPath, _databaseName);
+  }
+
+  /// Closes the current connection so the file can be safely
+  /// read, copied, or overwritten elsewhere.
+  Future<void> close() async {
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null;
+    }
+  }
+
+  /// Raw bytes of the current database file — flushes SQLite WAL first.
+  Future<Uint8List> exportDatabaseBytes() async {
+    final db = await instance.database;
+
+    // Checkpoint any pending Write-Ahead Log entries to the main .db file
+    await db.rawQuery('PRAGMA wal_checkpoint(FULL);');
+
+    final path = await getDatabaseFilePath();
+    return File(path).readAsBytes();
+  }
+
+  /// Validates and swaps in a backup file, then reopens the database safely.
+  Future<void> importDatabaseBytes(Uint8List bytes) async {
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File(join(tempDir.path, 'notebook_import_check.db'));
+    await tempFile.writeAsBytes(bytes, flush: true);
+
+    Database? checkDb;
+    try {
+      checkDb = await openDatabase(tempFile.path, readOnly: true);
+      final tables = await checkDb.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('notes','notebooks')",
+      );
+      if (tables.length < 2) {
+        throw const FormatException(
+          'Selected file is not a valid Notebook backup.',
+        );
+      }
+    } finally {
+      await checkDb?.close();
+    }
+
+    // Safely close the existing database instance
+    await close();
+
+    final path = await getDatabaseFilePath();
+
+    // Clear old SQLite auxiliary files to prevent database corruption
+    final walFile = File('$path-wal');
+    final shmFile = File('$path-shm');
+    if (await walFile.exists()) await walFile.delete();
+    if (await shmFile.exists()) await shmFile.delete();
+
+    // Overwrite database file
+    await tempFile.copy(path);
+    await tempFile.delete();
+
+    // Re-initialize database handle
+    _database = await _initDatabase();
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:notebook/constants/colors.dart';
+import 'package:notebook/views/settings_screen.dart';
 import 'package:notebook/views/widgets/create_notebook_sheet.dart';
 import 'package:notebook/views/widgets/note_tile.dart';
 import 'package:notebook/models/note.dart';
@@ -148,6 +149,20 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
               },
             )
           else ...[
+            IconButton(
+              icon: const Icon(Icons.settings_outlined, color: Colors.white),
+              onPressed: () async {
+                final changed = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+                if (changed == true && mounted) {
+                  await _refreshData();
+                }
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.add_box_outlined, color: Colors.white),
               onPressed: _showCreateNotebookDialog,
