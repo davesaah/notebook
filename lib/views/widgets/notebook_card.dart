@@ -21,57 +21,63 @@ class NotebookCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
+          // Fixed width with proportional height based on 100/140 ratio
+          SizedBox(
+            width: 140, // Scaled up width (Adjust this to scale the card up/down)
             child: AspectRatio(
-              aspectRatio: 100 / 140, // Maintains original notebook dimensions
+              aspectRatio: 100 / 140,
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(8),
-                    bottomRight: Radius.circular(8),
-                    topLeft: Radius.circular(2),
-                    bottomLeft: Radius.circular(2),
+                    topRight: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                    topLeft: Radius.circular(3),
+                    bottomLeft: Radius.circular(3),
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(3, 4),
+                      blurRadius: 10,
+                      offset: const Offset(4, 5),
                     ),
                   ],
                 ),
                 child: Stack(
                   children: [
+                    // Left spine line
                     Positioned(
-                      left: 8,
+                      left: 12,
                       top: 0,
                       bottom: 0,
                       child: Container(
-                        width: 2,
+                        width: 3,
                         color: Colors.black.withValues(alpha: 0.15),
                       ),
                     ),
+                    // Right edge accent
                     Positioned(
-                      right: 12,
+                      right: 16,
                       top: 0,
                       bottom: 0,
                       child: Container(
-                        width: 6,
+                        width: 8,
                         color: Colors.black.withValues(alpha: 0.2),
                       ),
                     ),
+                    // Title text with increased font size and padding
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 20, 24, 16),
+                      padding: const EdgeInsets.fromLTRB(22, 26, 30, 20),
                       child: Text(
                         title.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                          letterSpacing: 0.5,
+                          fontSize: 14, // Scaled up font size
+                          letterSpacing: 0.6,
+                          height: 1.2,
                         ),
-                        maxLines: 4,
+                        maxLines: 5,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -80,10 +86,14 @@ class NotebookCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             '($count)',
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 15, // Scaled up count label
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

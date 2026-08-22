@@ -232,7 +232,7 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.1, // Aspect ratio to fit NotebookCard design
+            childAspectRatio: 0.65, // Aspect ratio to fit NotebookCard design
           ),
           itemCount: _notebooks.length,
           itemBuilder: (context, index) {
