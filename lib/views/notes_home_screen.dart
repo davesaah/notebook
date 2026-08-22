@@ -76,8 +76,6 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
 
   Notebook _notebookById(String id) =>
       _notebooks.firstWhere((nb) => nb.id == id);
-  Color _getNotebookColor(String notebookId) => _notebookById(notebookId).color;
-  String _getNotebookName(String notebookId) => _notebookById(notebookId).title;
 
   void _showCreateNotebookDialog() async {
     final newNotebook = await showModalBottomSheet<Notebook>(
@@ -114,7 +112,7 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
                 ),
               )
             : const Text(
-                'Notes',
+                'Notebook',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -188,8 +186,8 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
         return NoteTile(
           note: note,
           showDate: true,
-          notebookName: _getNotebookName(note.notebookId),
-          notebookColor: _getNotebookColor(note.notebookId),
+          notebookName: _notebookById(note.notebookId).title,
+          notebookColor: _notebookById(note.notebookId).color,
           onTap: () async {
             final updated = await Navigator.push<bool>(
               context,
@@ -199,7 +197,6 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
                   initialTitle: note.title,
                   initialContent: note.content,
                   initialDateCreated: note.dateCreated,
-                  notebookName: _getNotebookName(note.notebookId),
                   notebookId: note.notebookId,
                 ),
               ),

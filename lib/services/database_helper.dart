@@ -142,6 +142,25 @@ class DatabaseHelper {
     return result.map((item) => Note.fromMap(item)).toList();
   }
 
+  // Search across notes in the notebook database by title and content
+  Future<List<Note>> searchNotesInNotebook(
+    String query,
+    String notebookId,
+  ) async {
+    final db = await instance.database;
+    final formattedQuery = '%$query%';
+
+    final result = await db.query(
+      'notes',
+      where:
+          'notebookId = ? AND (LOWER(title) LIKE ? OR LOWER(content) LIKE ?)',
+      whereArgs: [notebookId, formattedQuery, formattedQuery],
+      orderBy: 'dateCreated DESC',
+    );
+
+    return result.map((item) => Note.fromMap(item)).toList();
+  }
+
   // --- Export / Import ---
   /// Full path to the underlying sqlite file.
   Future<String> getDatabaseFilePath() async {

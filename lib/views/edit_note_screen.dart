@@ -13,7 +13,6 @@ class EditNoteScreen extends StatefulWidget {
   final String? noteId;
   final String? initialTitle;
   final String? initialContent;
-  final String notebookName;
   final String notebookId;
   final DateTime? initialDateCreated;
 
@@ -22,7 +21,6 @@ class EditNoteScreen extends StatefulWidget {
     this.noteId,
     this.initialTitle,
     this.initialContent,
-    required this.notebookName,
     required this.notebookId,
     this.initialDateCreated,
   });
@@ -161,7 +159,9 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               ),
               onPressed: () async {
                 final title = _titleController.text.trim();
-                final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
+                final deltaJson = jsonEncode(
+                  _quillController.document.toDelta().toJson(),
+                );
 
                 if (title.isNotEmpty || deltaJson.isNotEmpty) {
                   final noteToSave = Note(

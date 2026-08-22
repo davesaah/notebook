@@ -17,12 +17,24 @@ class NotebookDetailsScreen extends StatefulWidget {
 
 class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
   List<Note> _notes = [];
+  List<Note> _filteredNotes = [];
   bool _isLoading = true;
+
+  // Search State
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadNotes();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNotes() async {
@@ -35,6 +47,32 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
       _notes = notes;
       _isLoading = false;
     });
+
+    _applySearchFilter();
+  }
+
+  void _onSearchChanged() {
+    _applySearchFilter();
+  }
+
+  void _applySearchFilter() async {
+    final query = _searchController.text.trim().toLowerCase();
+
+    if (query.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _filteredNotes = List.from(_notes);
+      });
+    } else {
+      final results = await DatabaseHelper.instance.searchNotesInNotebook(
+        query,
+        widget.notebook.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _filteredNotes = results;
+      });
+    }
   }
 
   @override
@@ -48,6 +86,37 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+                decoration: const InputDecoration(
+                  hintText: 'Search in this notebook...',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: InputBorder.none,
+                ),
+              )
+            : null,
+        actions: [
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchController.clear();
+                });
+              },
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.search, color: Colors.white),
+              onPressed: () {
+                setState(() => _isSearching = true);
+              },
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
@@ -59,54 +128,55 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
                   horizontal: 16,
                 ),
                 children: [
-                  // Title & New Note Button
-                  Text(
-                    widget.notebook.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                  // Hide title & New Note button while searching
+                  if (!_isSearching || _searchController.text.isEmpty) ...[
+                    Text(
+                      widget.notebook.title.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white38),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white38),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final created = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditNoteScreen(
+                                notebookId: widget.notebook.id,
+                              ),
+                            ),
+                          );
+                          if (created == true) await _loadNotes();
+                        },
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        label: const Text(
+                          'New Note',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
                         ),
                       ),
-                      onPressed: () async {
-                        final created = await Navigator.push<bool>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditNoteScreen(
-                              notebookName: widget.notebook.title,
-                              notebookId: widget.notebook.id,
-                            ),
-                          ),
-                        );
-                        if (created == true) await _loadNotes();
-                      },
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text(
-                        'New Note',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
+                  ],
 
-                  // Notes List
-                  if (_notes.isEmpty)
+                  // Notes List View
+                  if (_filteredNotes.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Center(
                         child: Text(
-                          'No notes in this notebook',
+                          'No notes found',
                           style: TextStyle(color: Colors.grey),
                         ),
                       ),
@@ -115,14 +185,14 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _notes.length,
+                      itemCount: _filteredNotes.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 16),
                       itemBuilder: (context, index) {
-                        final note = _notes[index];
+                        final note = _filteredNotes[index];
 
                         bool showDate = true;
                         if (index > 0) {
-                          final prevNote = _notes[index - 1];
+                          final prevNote = _filteredNotes[index - 1];
                           showDate =
                               !(note.dateCreated.year ==
                                       prevNote.dateCreated.year &&
@@ -146,7 +216,6 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
                                   initialTitle: note.title,
                                   initialContent: note.content,
                                   initialDateCreated: note.dateCreated,
-                                  notebookName: widget.notebook.title,
                                   notebookId: widget.notebook.id,
                                 ),
                               ),
