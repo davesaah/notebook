@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -15,6 +16,7 @@ class EditNoteScreen extends StatefulWidget {
   final String? initialContent;
   final String notebookId;
   final DateTime? initialDateCreated;
+  final Future<void> Function()? onNoteSaved;
 
   const EditNoteScreen({
     super.key,
@@ -23,6 +25,7 @@ class EditNoteScreen extends StatefulWidget {
     this.initialContent,
     required this.notebookId,
     this.initialDateCreated,
+    this.onNoteSaved,
   });
 
   @override
@@ -34,10 +37,23 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   late final TextEditingController _titleController;
   late final DateTime _dateCreated;
   final FocusNode _editorFocusNode = FocusNode();
+  Timer? _autoSaveTimer;
+  late String _noteId;
+  String? _lastSavedTitle;
+  String? _lastSavedContent;
+  bool _noteExists = false;
 
   @override
   void initState() {
     super.initState();
+
+    _noteId = widget.noteId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+    _noteExists = widget.noteId != null;
+
+    _lastSavedTitle = widget.initialTitle?.trim() ?? '';
+    _lastSavedContent = widget.initialContent ?? '';
+
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _dateCreated = widget.initialDateCreated ?? DateTime.now();
 
@@ -51,10 +67,24 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     } else {
       _quillController = QuillController.basic();
     }
+
+    _titleController.addListener(_onNoteChanged);
+    _quillController.addListener(_onNoteChanged);
+  }
+
+  void _onNoteChanged() {
+    _autoSaveTimer?.cancel();
+
+    _autoSaveTimer = Timer(const Duration(milliseconds: 500), _autoSave);
   }
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
+
+    _titleController.removeListener(_onNoteChanged);
+    _quillController.removeListener(_onNoteChanged);
+
     _quillController.dispose();
     _titleController.dispose();
     _editorFocusNode.dispose();
@@ -143,10 +173,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
       appBar: AppBar(
         backgroundColor: CustomColors.scaffoldBackground,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
@@ -157,34 +183,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              onPressed: () async {
-                final title = _titleController.text.trim();
-                final deltaJson = jsonEncode(
-                  _quillController.document.toDelta().toJson(),
-                );
-
-                if (title.isNotEmpty || deltaJson.isNotEmpty) {
-                  final noteToSave = Note(
-                    id:
-                        widget.noteId ??
-                        DateTime.now().millisecondsSinceEpoch.toString(),
-                    title: title.isEmpty ? 'Untitled Note' : title,
-                    content: deltaJson,
-                    notebookId: widget.notebookId,
-                    dateCreated: _dateCreated,
-                  );
-
-                  if (widget.noteId != null) {
-                    await DatabaseHelper.instance.updateNote(noteToSave);
-                  } else {
-                    await DatabaseHelper.instance.createNote(noteToSave);
-                  }
-                }
-
-                if (context.mounted) {
-                  Navigator.pop(context, true);
-                }
-              },
+              onPressed: _saveNote,
               child: const Text('Done', style: TextStyle(color: Colors.white)),
             ),
           ),
@@ -297,6 +296,54 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveNote() async {
+    _autoSaveTimer?.cancel();
+
+    await _autoSave();
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _autoSave() async {
+    final title = _titleController.text.trim();
+    final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
+
+    if (title.isEmpty && deltaJson.isEmpty) {
+      return;
+    }
+
+    final hasChanged =
+        title != _lastSavedTitle || deltaJson != _lastSavedContent;
+
+    if (!hasChanged) {
+      return;
+    }
+
+    final noteToSave = Note(
+      id: _noteId,
+      title: title.isEmpty ? 'Untitled Note' : title,
+      content: deltaJson,
+      notebookId: widget.notebookId,
+      dateCreated: _dateCreated,
+    );
+
+    if (_noteExists) {
+      await DatabaseHelper.instance.updateNote(noteToSave);
+    } else {
+      await DatabaseHelper.instance.createNote(noteToSave);
+      _noteExists = true;
+    }
+
+    // Update local snapshot only after the database save succeeds.
+    _lastSavedTitle = title;
+    _lastSavedContent = deltaJson;
+
+    // Tell the previous screen that the note has changed.
+    await widget.onNoteSaved?.call();
   }
 
   String _formatDate(DateTime date) {

@@ -19,6 +19,7 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
   List<Note> _notes = [];
   List<Note> _filteredNotes = [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
 
   // Search State
   bool _isSearching = false;
@@ -27,7 +28,7 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadNotes();
+    _loadNotes(showLoading: true);
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -37,25 +38,40 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
     super.dispose();
   }
 
-  Future<void> _loadNotes() async {
-    setState(() => _isLoading = true);
-    final notes = await DatabaseHelper.instance.getNotesForNotebook(
-      widget.notebook.id,
-    );
-    if (!mounted) return;
-    setState(() {
-      _notes = notes;
-      _isLoading = false;
-    });
+  Future<void> _loadNotes({bool showLoading = false}) async {
+    if (_isRefreshing) return;
 
-    _applySearchFilter();
+    _isRefreshing = true;
+
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    try {
+      final notes = await DatabaseHelper.instance.getNotesForNotebook(
+        widget.notebook.id,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _notes = notes;
+        _isLoading = false;
+      });
+
+      await _applySearchFilter();
+    } finally {
+      _isRefreshing = false;
+    }
   }
 
   void _onSearchChanged() {
     _applySearchFilter();
   }
 
-  void _applySearchFilter() async {
+  Future<void> _applySearchFilter() async {
     final query = _searchController.text.trim().toLowerCase();
 
     if (query.isEmpty) {
@@ -63,16 +79,20 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
       setState(() {
         _filteredNotes = List.from(_notes);
       });
-    } else {
-      final results = await DatabaseHelper.instance.searchNotesInNotebook(
-        query,
-        widget.notebook.id,
-      );
-      if (!mounted) return;
-      setState(() {
-        _filteredNotes = results;
-      });
+
+      return;
     }
+
+    final results = await DatabaseHelper.instance.searchNotesInNotebook(
+      query,
+      widget.notebook.id,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _filteredNotes = results;
+    });
   }
 
   @override
@@ -150,15 +170,15 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
                           ),
                         ),
                         onPressed: () async {
-                          final created = await Navigator.push<bool>(
+                          await Navigator.push<bool>(
                             context,
                             MaterialPageRoute(
                               builder: (context) => EditNoteScreen(
                                 notebookId: widget.notebook.id,
+                                onNoteSaved: _loadNotes,
                               ),
                             ),
                           );
-                          if (created == true) await _loadNotes();
                         },
                         icon: const Icon(Icons.add, color: Colors.white),
                         label: const Text(
@@ -208,7 +228,7 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
                           notebookName: widget.notebook.title,
                           notebookColor: widget.notebook.color,
                           onTap: () async {
-                            final updated = await Navigator.push<bool>(
+                            await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => EditNoteScreen(
@@ -217,10 +237,10 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
                                   initialContent: note.content,
                                   initialDateCreated: note.dateCreated,
                                   notebookId: widget.notebook.id,
+                                  onNoteSaved: _loadNotes,
                                 ),
                               ),
                             );
-                            if (updated == true) await _loadNotes();
                           },
                         );
                       },

@@ -9,3 +9,4 @@ A simple notebook mobile app.
 - Bible verse embedding.
 - Export & import of data.
 - Notes search: title + content.
+- Note autosave.

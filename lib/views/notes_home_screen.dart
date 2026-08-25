@@ -21,6 +21,7 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
   List<Notebook> _notebooks = [];
   List<Note> _searchResults = [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
 
   // Search State
   bool _isSearching = false;
@@ -29,7 +30,7 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshData();
+    _refreshData(showLoading: true);
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -39,39 +40,58 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
     super.dispose();
   }
 
-  Future<void> _refreshData() async {
-    setState(() => _isLoading = true);
-    final notebooks = await DatabaseHelper.instance.getAllNotebooks();
+  Future<void> _refreshData({bool showLoading = false}) async {
+    if (_isRefreshing) return;
 
-    if (!mounted) return;
+    _isRefreshing = true;
 
-    setState(() {
-      _notebooks = notebooks;
-      _isLoading = false;
-    });
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
-    if (_isSearching) {
-      _applySearchFilter();
+    try {
+      final notebooks = await DatabaseHelper.instance.getAllNotebooks();
+
+      if (!mounted) return;
+
+      setState(() {
+        _notebooks = notebooks;
+        _isLoading = false;
+      });
+
+      if (_isSearching && _searchController.text.trim().isNotEmpty) {
+        await _refreshSearchResults();
+      }
+    } finally {
+      _isRefreshing = false;
     }
   }
 
-  void _onSearchChanged() {
-    _applySearchFilter();
-  }
-
-  void _applySearchFilter() async {
+  Future<void> _refreshSearchResults() async {
     final query = _searchController.text.trim().toLowerCase();
+
     if (query.isEmpty) {
-      setState(() => _searchResults = []);
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+        });
+      }
       return;
     }
 
     final results = await DatabaseHelper.instance.searchAllNotes(query);
+
     if (!mounted) return;
 
     setState(() {
       _searchResults = results;
     });
+  }
+
+  void _onSearchChanged() {
+    _refreshSearchResults();
   }
 
   Notebook _notebookById(String id) =>
@@ -189,7 +209,7 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
           notebookName: _notebookById(note.notebookId).title,
           notebookColor: _notebookById(note.notebookId).color,
           onTap: () async {
-            final updated = await Navigator.push<bool>(
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => EditNoteScreen(
@@ -198,10 +218,10 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
                   initialContent: note.content,
                   initialDateCreated: note.dateCreated,
                   notebookId: note.notebookId,
+                  onNoteSaved: _refreshData,
                 ),
               ),
             );
-            if (updated == true) await _refreshData();
           },
         );
       },

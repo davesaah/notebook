@@ -118,6 +118,17 @@ class DatabaseHelper {
     return result.map((item) => Note.fromMap(item)).toList();
   }
 
+  Future<bool> noteExists(String currentNoteId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'notes',
+      where: 'id = ?',
+      whereArgs: [currentNoteId],
+    );
+
+    return result.isEmpty;
+  }
+
   Future<int> updateNote(Note note) async {
     final db = await instance.database;
     return await db.update(
