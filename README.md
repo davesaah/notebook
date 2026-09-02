@@ -19,14 +19,17 @@ Checkout the [screenshots folder](./screenshots/) in the repo.
 
 ## Why Notebook?
 
+I write a lot.
+
+![Personal Library](./library.jpg)
+
 I could not find a notebook app that could help me replace my growing library of
 journals. The options available either had too many features I do not need, ads
 that disrupt what I am doing, or it is too minimal to be very useful. One app
-came close: Gospel Partner app. It is primary an app for viewing sermons and
-devotionals. The notes feature is an addon. Due to that, the feature was not
-well optimised. It felt too slow to use.
+came close: Gospel Partner app. It is primarily an app for viewing sermons and
+devotionals. The notes feature is an addon. However, it felt too slow to use.
 
-Notebook started as a clone of the notes feature in the Gospel Partner app. Then
+Notebook started as a clone of the notes addon in the Gospel Partner app. Then
 I took it a step further and reimagined it. I intentionally removed lots of features
 and made it straightforward like a normal notebook.
 
@@ -40,3 +43,21 @@ This is what I call a normal notebook:
 ## Inspiration
 
 - [Gospel Partner](https://gospelpartner.com) app notes feature.
+
+## Support
+
+If you enjoy this app, find it useful, and would like to support this project or future projects 
+like it, you can reach me at davesaah@gmail.com. You can also use the github sponsor button when
+it approved and available.
+
+Your support is completely voluntary and greatly appreciated.
+
+### How Support Will Be Used
+
+Any financial support received will be used to help develop and make this project more accessible,
+including:
+
+1. **Google Play Store availability**: Cover the costs of making the app freely available on the 
+    Google Play Store.
+2. **iOS version & Apple Store availability**: Fund development and the costs associated with 
+    making the app freely available on iOS.

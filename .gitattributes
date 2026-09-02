@@ -1,1 +1,13 @@
 *.db filter=lfs diff=lfs merge=lfs -text
+library.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-41-04-153_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-41-51-588_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-42-03-104_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-42-28-191_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-41-07-544_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-41-10-576_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-41-32-469_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-42-00-301_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+screenshots/Screenshot_2026-08-24-17-42-10-477_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
+assets/bible/KJV.db filter=lfs diff=lfs merge=lfs -text
+assets/bible/YLT.db filter=lfs diff=lfs merge=lfs -text
