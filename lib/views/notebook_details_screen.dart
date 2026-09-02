@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:notebook/constants/colors.dart';
 import 'package:notebook/models/note.dart';
@@ -20,6 +22,7 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
   List<Note> _filteredNotes = [];
   bool _isLoading = true;
   bool _isRefreshing = false;
+  Timer? _searchDebounce;
 
   // Search State
   bool _isSearching = false;
@@ -34,6 +37,8 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -68,7 +73,12 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
   }
 
   void _onSearchChanged() {
-    _applySearchFilter();
+    _searchDebounce?.cancel();
+
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      _applySearchFilter,
+    );
   }
 
   Future<void> _applySearchFilter() async {
@@ -79,7 +89,6 @@ class _NotebookDetailsScreenState extends State<NotebookDetailsScreen> {
       setState(() {
         _filteredNotes = List.from(_notes);
       });
-
       return;
     }
 

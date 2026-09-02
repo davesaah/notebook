@@ -67,7 +67,7 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: CustomColors.boxDecorationBackground,
+        color: CustomColors.darkCharcoal,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
@@ -116,28 +116,58 @@ class _BiblePickerSheetState extends State<BiblePickerSheet> {
               ),
             )
           else
-            DropdownButtonFormField<int>(
-              dropdownColor: CustomColors.dropdownBackground,
-              initialValue: _selectedBookId,
-              decoration: const InputDecoration(
-                labelText: 'Book',
-                labelStyle: TextStyle(color: Colors.grey),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-              items: _booksList
-                  .map(
-                    (bookMap) => DropdownMenuItem<int>(
-                      value: bookMap['id'] as int,
-                      child: Text(bookMap['name'] ?? ''),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (val) => setState(() => _selectedBookId = val),
-            ),
+            Autocomplete<int>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                final query = textEditingValue.text.trim().toLowerCase();
 
+                if (query.isEmpty) {
+                  return const Iterable<int>.empty();
+                }
+
+                return _booksList
+                    .where(
+                      (book) => (book['name'] as String).toLowerCase().contains(
+                        query,
+                      ),
+                    )
+                    .map((book) => book['id'] as int);
+              },
+
+              displayStringForOption: (int bookId) {
+                final book = _booksList.firstWhere(
+                  (book) => book['id'] == bookId,
+                );
+
+                return book['name'] as String;
+              },
+
+              onSelected: (int bookId) {
+                setState(() {
+                  _selectedBookId = bookId;
+                });
+              },
+
+              fieldViewBuilder:
+                  (
+                    context,
+                    textEditingController,
+                    focusNode,
+                    onFieldSubmitted,
+                  ) {
+                    return TextFormField(
+                      controller: textEditingController,
+                      focusNode: focusNode,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Book',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                      ),
+                    );
+                  },
+            ),
           const SizedBox(height: 12),
 
           // Chapter, Start Verse, and Optional End Verse Inputs

@@ -65,7 +65,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final bytes = await file.readAsBytes();
 
-      // DatabaseHelper validates the SQLite schema structure here
       await DatabaseHelper.instance.importDatabaseBytes(bytes);
 
       if (!mounted) return;
@@ -82,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF232323),
+        backgroundColor: CustomColors.darkCharcoal,
         title: const Text(
           'Replace all notes?',
           style: TextStyle(color: Colors.white),
@@ -183,7 +182,7 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF232323),
+      color: CustomColors.darkCharcoal,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

@@ -36,7 +36,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   late final QuillController _quillController;
   late final TextEditingController _titleController;
   late final DateTime _dateCreated;
-  final FocusNode _editorFocusNode = FocusNode();
   Timer? _autoSaveTimer;
   late String _noteId;
   String? _lastSavedTitle;
@@ -46,17 +45,14 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   @override
   void initState() {
     super.initState();
-
     _noteId = widget.noteId ?? DateTime.now().millisecondsSinceEpoch.toString();
-
     _noteExists = widget.noteId != null;
-
     _lastSavedTitle = widget.initialTitle?.trim() ?? '';
     _lastSavedContent = widget.initialContent ?? '';
-
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _dateCreated = widget.initialDateCreated ?? DateTime.now();
 
+    // decode existing note contents to show rich text
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
       final json = jsonDecode(widget.initialContent!);
       final doc = Document.fromJson(json);
@@ -65,6 +61,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         selection: const TextSelection.collapsed(offset: 0),
       );
     } else {
+      // present a fresh rich text editor
       _quillController = QuillController.basic();
     }
 
@@ -74,21 +71,38 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
 
   void _onNoteChanged() {
     _autoSaveTimer?.cancel();
-
     _autoSaveTimer = Timer(const Duration(milliseconds: 500), _autoSave);
   }
 
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
-
     _titleController.removeListener(_onNoteChanged);
     _quillController.removeListener(_onNoteChanged);
-
     _quillController.dispose();
     _titleController.dispose();
-    _editorFocusNode.dispose();
     super.dispose();
+  }
+
+  String _stripItalicMarkers(
+    String input,
+    int inputBufferLength,
+    List<MapEntry<int, int>> ranges,
+  ) {
+    final regex = RegExp(r'<FI>(.*?)<Fi>'); // italic markers in YLT
+    final buffer = StringBuffer();
+    int lastEnd = 0;
+
+    for (final match in regex.allMatches(input)) {
+      buffer.write(input.substring(lastEnd, match.start));
+      final italicStart = inputBufferLength + buffer.length;
+      final content = match.group(1)!;
+      buffer.write(content);
+      ranges.add(MapEntry(italicStart, content.length));
+      lastEnd = match.end;
+    }
+    buffer.write(input.substring(lastEnd));
+    return buffer.toString();
   }
 
   Future<void> _insertVerse({
@@ -100,7 +114,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     int? endVerse,
   }) async {
     List<BibleVerse> verses = [];
-
     if (endVerse != null && endVerse > startVerse) {
       verses = await BibleHelper.getVerseRange(
         translation: translation,
@@ -116,21 +129,43 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         chapter: chapter,
         verse: startVerse,
       );
-
       verses.add(singleVerse);
     }
-
     if (verses.isEmpty) return;
 
-    // Format single verse vs multiline range
-    final String quoteBody = verses.length == 1
-        ? '"${verses.first.text}"'
-        : verses.map((v) => '${v.verse}. ${v.text}').join('\n');
+    // Build quoteBody while tracking italic ranges relative to quoteBody's own start
+    final List<MapEntry<int, int>> relativeItalicRanges = [];
+    final quoteBuffer = StringBuffer();
 
+    if (verses.length == 1) {
+      quoteBuffer.write('"');
+      final cleaned = _stripItalicMarkers(
+        verses.first.text,
+        quoteBuffer.length,
+        relativeItalicRanges,
+      );
+      quoteBuffer.write(cleaned);
+      quoteBuffer.write('"');
+    } else {
+      for (var i = 0; i < verses.length; i++) {
+        final v = verses[i];
+        quoteBuffer.write('${v.verse}. ');
+        final cleaned = _stripItalicMarkers(
+          v.text,
+          quoteBuffer.length,
+          relativeItalicRanges,
+        );
+        quoteBuffer.write(cleaned);
+        if (i != verses.length - 1) quoteBuffer.write('\n');
+      }
+    }
+
+    final String quoteBody = quoteBuffer.toString();
+    final int verseRefStart = quoteBody.length;
     final verseRef = endVerse != null
-        ? '— $bookName $chapter:$startVerse–$endVerse ($translation)'
-        : '— $bookName $chapter:$startVerse ($translation)';
-
+        ? '$bookName $chapter:$startVerse-$endVerse ($translation)'
+        : '$bookName $chapter:$startVerse ($translation)';
+    final int verseRefEnd = verseRefStart + verseRef.length;
     final fullInsertedText = '\n$quoteBody\n$verseRef\n\n';
 
     final index = _quillController.selection.baseOffset;
@@ -144,11 +179,31 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     // 2. Format verse block and citation as blockquote
     final formatStart = targetIndex + 1;
     final formatLength = quoteBody.length + 1 + verseRef.length + 1;
-
     _quillController.formatText(
       formatStart,
       formatLength,
       Attribute.blockQuote,
+    );
+
+    // 2b. Apply bold + italics to show where <FI>..<Fi> markers were
+    for (final range in relativeItalicRanges) {
+      _quillController.formatText(
+        formatStart + range.key,
+        range.value,
+        Attribute.italic,
+      );
+      _quillController.formatText(
+        formatStart + range.key,
+        range.value,
+        Attribute.bold,
+      );
+    }
+
+    // 2c. Make verse reference bold
+    _quillController.formatText(
+      formatStart + verseRefStart,
+      verseRefEnd,
+      Attribute.bold,
     );
 
     // 3. Explicitly strip blockquote attribute from the final new line
@@ -223,7 +278,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: QuillEditor.basic(
                   controller: _quillController,
-                  focusNode: _editorFocusNode,
                   config: const QuillEditorConfig(
                     placeholder: 'Start typing...',
                     padding: EdgeInsets.zero,
@@ -310,12 +364,13 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
 
   Future<void> _autoSave() async {
     final title = _titleController.text.trim();
-    final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
+    final content = _quillController.document.toPlainText().trim();
 
-    if (title.isEmpty && deltaJson.isEmpty) {
+    if (title.isEmpty && content.isEmpty) {
       return;
     }
 
+    final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
     final hasChanged =
         title != _lastSavedTitle || deltaJson != _lastSavedContent;
 

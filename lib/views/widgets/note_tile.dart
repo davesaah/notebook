@@ -23,9 +23,9 @@ class NoteTile extends StatelessWidget {
   });
 
   String getNotePlainText(String contentJson) {
-      final decoded = jsonDecode(contentJson);
-      final doc = Document.fromJson(decoded);
-      return doc.toPlainText().trim();
+    final decoded = jsonDecode(contentJson);
+    final doc = Document.fromJson(decoded);
+    return doc.toPlainText().trim();
   }
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:notebook/constants/colors.dart';
 import 'package:notebook/models/note.dart';
@@ -22,10 +24,9 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
   List<Note> _searchResults = [];
   bool _isLoading = true;
   bool _isRefreshing = false;
-
-  // Search State
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -36,6 +37,8 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -72,12 +75,10 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
   Future<void> _refreshSearchResults() async {
     final query = _searchController.text.trim().toLowerCase();
 
-    if (query.isEmpty) {
-      if (mounted) {
-        setState(() {
-          _searchResults = [];
-        });
-      }
+    if (query.isEmpty && mounted) {
+      setState(() {
+        _searchResults = [];
+      });
       return;
     }
 
@@ -91,7 +92,12 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
   }
 
   void _onSearchChanged() {
-    _refreshSearchResults();
+    _searchDebounce?.cancel();
+
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      _refreshSearchResults,
+    );
   }
 
   Notebook _notebookById(String id) =>

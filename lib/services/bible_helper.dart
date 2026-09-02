@@ -26,7 +26,7 @@ class BibleHelper {
     final file = File(path);
 
     if (!await file.exists()) {
-      // Ensure the databases directory exists (needed on some platforms/first run)
+      // Ensure the databases directory exists
       await Directory(dbPath).create(recursive: true);
 
       // Load the bundled asset database

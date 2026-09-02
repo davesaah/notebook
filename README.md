@@ -1,6 +1,6 @@
 # notebook
 
-A simple notebook mobile app. It's very fast btw.
+A simple notebook mobile app built for **android**. It's very fast btw.
 
 ## Screenshots
 

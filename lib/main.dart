@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:notebook/constants/colors.dart';
-
-import 'views/notes_home_screen.dart';
+import 'package:notebook/views/notes_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
