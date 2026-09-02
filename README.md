@@ -10,7 +10,7 @@ Checkout the [screenshots folder](./screenshots/) in the repo.
 
 - Works completely offline.
 - Rich text editing for notes.
-- Bible verse embedding.
+- Bible verse embedding (all Bible assets are from public domain).
 - Export & import of data.
 - Notes search: title + content.
 - Note autosave.
