@@ -11,3 +11,4 @@ screenshots/Screenshot_2026-08-24-17-42-00-301_com.davesaah.notebook.jpg filter=
 screenshots/Screenshot_2026-08-24-17-42-10-477_com.davesaah.notebook.jpg filter=lfs diff=lfs merge=lfs -text
 assets/bible/KJV.db filter=lfs diff=lfs merge=lfs -text
 assets/bible/YLT.db filter=lfs diff=lfs merge=lfs -text
+android/build/reports/problems/problems-report.html linguist-vendored
