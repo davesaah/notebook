@@ -253,7 +253,12 @@ class _NotesHomeScreenState extends State<NotesHomeScreen> {
         }
 
         return GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.only(
+            top: 16,
+            left: 16,
+            right: 16,
+            bottom: 16 + MediaQuery.of(context).padding.bottom,
+          ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
